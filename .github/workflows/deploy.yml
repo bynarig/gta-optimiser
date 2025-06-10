@@ -18,11 +18,17 @@ jobs:
         with:
           node-version: '20' # Use a Node.js version compatible with your project
 
-      - name: Install dependencies
-        run: npm ci # Use npm ci for clean installs in CI environments
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8 # Specify the pnpm version you are using
+          run_install: false # We will run install manually with --frozen-lockfile
+
+      - name: Install dependencies with pnpm (frozen-lockfile)
+        run: pnpm install --frozen-lockfile
 
       - name: Build and Export Next.js
-        run: npm run deploy # This runs the deploy script we defined in package.json
+        run: pnpm run deploy # This runs the deploy script we defined in package.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
