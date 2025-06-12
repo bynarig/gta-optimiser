@@ -84,19 +84,16 @@ export default function App(): ReactElement {
 		INITIAL_LOGO_FONT_SIZE -
 		(INITIAL_LOGO_FONT_SIZE - FINAL_LOGO_FONT_SIZE) * scrollProgress;
 	const currentLogoPL =
-		INITIAL_LOGO_PL + (FINAL_LOGO_PL - INITIAL_LOGO_PL) * scrollProgress; // Add initial PL as it goes from 0 to 16
+		INITIAL_LOGO_PL + (FINAL_LOGO_PL - INITIAL_LOGO_PL) * scrollProgress;
 
 	const navLinks = [
-		{ name: "Home", href: "#" },
-		{ name: "Features", href: "#" },
-		{ name: "Pricing", href: "#" },
-		{ name: "Contact", href: "#" },
+		{ name: "Contacts", href: "/contacts" },
+
 	];
 
 	return (
-		// Navbar container with glassmorphism styling and dynamic inline styles
 		<nav
-			ref={navbarRef} // Attach ref to the nav element
+			ref={navbarRef}
 			className={cn(
 				"fixed inset-x-0 z-50 shadow-xl backdrop-blur-2xl backdrop-saturate-150",
 				"mx-auto w-[96%] max-w-7xl rounded-lg border border-border bg-card"
@@ -105,21 +102,18 @@ export default function App(): ReactElement {
 				top: `${currentNavTop}px`,
 				paddingTop: `${currentNavPaddingY}px`,
 				paddingBottom: `${currentNavPaddingY}px`,
-				// Horizontal padding remains constant as per p-4 / px-4 default
 				paddingLeft: `16px`,
 				paddingRight: `16px`,
-				// Removed 'transition' property here for immediate style application on scroll
 			}}
 		>
 			<div className="flex items-center justify-between">
 				{/* Logo or Site Title */}
 				<div className="flex-shrink-0">
 					<a
-						href="#"
+						href="/"
 						style={{
 							fontSize: `${currentLogoFontSize}px`,
-							paddingLeft: `${currentLogoPL}px`, // Apply interpolated padding-left
-							// Removed 'transition' property here for immediate style application on scroll
+							paddingLeft: `${currentLogoPL}px`,
 						}}
 						className="font-bold text-primary-foreground"
 					>
@@ -127,7 +121,6 @@ export default function App(): ReactElement {
 					</a>
 				</div>
 
-				{/* Desktop Navigation Links */}
 				<div className="hidden md:flex md:items-center md:space-x-8">
 					{navLinks.map((link) => (
 						<a
@@ -140,9 +133,7 @@ export default function App(): ReactElement {
 					))}
 				</div>
 
-				{/* Right side: Theme Toggle and Mobile Menu Button */}
 				<div className="flex items-center space-x-4">
-					{/* Theme Toggle Button using the new Button component with 'ghost' variant */}
 					<Button
 						variant="ghost"
 						size="icon"
@@ -158,7 +149,6 @@ export default function App(): ReactElement {
 						)}
 					</Button>
 
-					{/* Mobile Menu Button */}
 					<button
 						onClick={() => {
 							setMobileMenuOpen(!mobileMenuOpen);
@@ -175,7 +165,6 @@ export default function App(): ReactElement {
 				</div>
 			</div>
 
-			{/* Mobile Menu Content (conditionally rendered) */}
 			{mobileMenuOpen && (
 				<div className="animate-in slide-in-from-top-4 duration-300 ease-out md:hidden">
 					<div className="mt-4 flex flex-col space-y-3 rounded-md border border-border bg-popover p-4 shadow-lg">
@@ -186,7 +175,7 @@ export default function App(): ReactElement {
 								className="block text-foreground transition-colors duration-200 hover:text-accent-foreground"
 								onClick={() => {
 									setMobileMenuOpen(false);
-								}} // Close menu on link click
+								}}
 							>
 								{link.name}
 							</a>

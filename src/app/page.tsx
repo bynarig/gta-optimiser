@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import {
 	Form,
 	FormControl,
@@ -15,55 +15,30 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { CircleHelp } from "lucide-react";
-// import axiosInstance from "@/lib/axios"; // Not used in the provided snippet, so commented out.
 import { Input } from "@/components/ui/input";
-import GtaConfigEditor from "./GtaConfigEditor";
+import GtaConfigEditor from "../components/GtaConfigEditor";
+import {configSchema} from "@/validators/config.validator";
 
-// Define the structure for a config item, used in the flattened state
 interface ConfigItem {
 	value: boolean | number | string;
 	type: "boolean" | "number" | "string" | "container";
 	readonly?: boolean;
 	originalValue?: boolean | number | string;
 }
-
-// Define the type for the entire flattened configuration object
 interface FlatConfig {
 	[key: string]: ConfigItem;
 }
 
-const MAX_FILE_SIZE = 500000; // 0.5MB
-const ACCEPTED_FILE_TYPES = ["text/xml", "application/xml"];
 
-const formSchema = z.object({
-	configfile: z
-		.instanceof(File)
-		.refine((file) => file.size <= MAX_FILE_SIZE, {
-			message: "File size must be less than 0.5MB",
-		})
-		.refine((file) => ACCEPTED_FILE_TYPES.includes(file.type), {
-			message: "Only .xml files are accepted",
-		}),
-});
 
-/**
- * Helper function to parse XML to a flattened JavaScript object.
- * This function flattens the XML structure into key-value pairs
- * where keys are dot-separated paths (e.g., "graphics.Tessellation")
- * and values are objects containing the parsed value and its inferred type.
- * @param xmlDoc The XML Document to parse.
- * @returns A flattened configuration object.
- */
+
 function parseGtaConfigXml(xmlDoc: Document): FlatConfig {
 	const config: FlatConfig = {};
 
-	// Recursive function to process each XML node
 	function processNode(node: Element, currentPath: Array<string>) {
-		// If the node has a 'value' attribute, extract it
 		if (node.hasAttribute("value")) {
 			const valueAttr = node.getAttribute("value");
 			if (valueAttr !== null) {
-				// Infer type for correct UI component rendering (boolean, number, string)
 				let parsedValue: boolean | number | string;
 				let inferredType: "boolean" | "number" | "string";
 
@@ -87,7 +62,6 @@ function parseGtaConfigXml(xmlDoc: Document): FlatConfig {
 			node.tagName === "VideoCardDescription" &&
 			node.textContent !== null
 		) {
-			// Special handling for VideoCardDescription, which is a direct child with text content
 			config[node.tagName] = {
 				value: node.textContent,
 				type: "string",
@@ -95,20 +69,16 @@ function parseGtaConfigXml(xmlDoc: Document): FlatConfig {
 				originalValue: node.textContent,
 			};
 		} else {
-			// For container elements like <graphics>, <system>, <audio>, <video>
-			// Ensure container objects are only created once if they don't exist
 			if (!config[currentPath.join(".")]) {
-				config[currentPath.join(".")] = { value: "", type: "container" }; // Value is not relevant for containers
+				config[currentPath.join(".")] = { value: "", type: "container" };
 			}
 		}
 
-		// Recursively process child elements
 		Array.from(node.children).forEach((child) => {
 			processNode(child, [...currentPath, child.tagName]);
 		});
 	}
 
-	// Start processing from the direct children of the root <Settings> element
 	if (xmlDoc.documentElement) {
 		Array.from(xmlDoc.documentElement.children).forEach((rootChild) => {
 			processNode(rootChild, [rootChild.tagName]);
@@ -118,13 +88,6 @@ function parseGtaConfigXml(xmlDoc: Document): FlatConfig {
 	return config;
 }
 
-/**
- * Helper function to serialize the flattened JavaScript object back to an XML string.
- * It updates an original XML string with the new values from the flattened configuration.
- * @param flatConfig The flattened configuration object with updated values.
- * @param originalXmlString The original XML content string.
- * @returns The updated XML content as a string.
- */
 function serializeGtaConfigToXml(
 	flatConfig: FlatConfig,
 	originalXmlString: string
@@ -132,14 +95,11 @@ function serializeGtaConfigToXml(
 	const parser = new DOMParser();
 	const xmlDoc = parser.parseFromString(originalXmlString, "text/xml");
 
-	// Iterate over the flattened config to update values in the DOM
 	for (const key in flatConfig) {
-		// Ensure the property belongs to the object and is not inherited
 		if (Object.prototype.hasOwnProperty.call(flatConfig, key)) {
 			const parts = key.split(".");
-			let currentNode: Element | null = xmlDoc.documentElement; // Start from root <Settings>
+			let currentNode: Element | null = xmlDoc.documentElement;
 
-			// Handle direct children of the root <Settings> that have text content (like VideoCardDescription)
 			if (parts.length === 1 && parts[0] === "VideoCardDescription") {
 				const videoCardDescElement = xmlDoc.querySelector(
 					"VideoCardDescription"
@@ -147,29 +107,25 @@ function serializeGtaConfigToXml(
 				if (videoCardDescElement) {
 					videoCardDescElement.textContent = String(flatConfig[key].value);
 				}
-				continue; // Move to the next key in flatConfig
+				continue;
 			}
 
-			// Traverse the DOM tree to find the target element
 			for (let i = 0; i < parts.length; i++) {
 				const part = parts[i];
 				if (currentNode) {
-					// Find the child element with the matching tag name
-					// Explicitly type nextNode here
 					const nextNode: Element | undefined = Array.from(
 						currentNode.children
 					).find((child) => child.tagName === part);
 					if (!nextNode) {
-						currentNode = null; // Path not found in the original XML structure
+						currentNode = null;
 						break;
 					}
 					currentNode = nextNode;
 				} else {
-					break; // Parent node was not found, breaking the path
+					break;
 				}
 			}
 
-			// If the element is found and has a 'value' attribute, update it
 			if (currentNode && currentNode.hasAttribute("value")) {
 				let valueToSet: string | number | boolean = flatConfig[key].value;
 				if (typeof valueToSet === "boolean") {
@@ -183,7 +139,6 @@ function serializeGtaConfigToXml(
 	const serializer = new XMLSerializer();
 	const updatedXmlString = serializer.serializeToString(xmlDoc);
 
-	// Add XML declaration if it's missing (DOMParser often omits it in serialized output)
 	if (!updatedXmlString.startsWith("<?xml")) {
 		return `<?xml version="1.0" encoding="UTF-8"?>\n${updatedXmlString}`;
 	}
@@ -196,23 +151,20 @@ export default function WelcomePage(): ReactElement {
 		null
 	);
 
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodResolver(formSchema),
+	const form = useForm<z.infer<typeof configSchema>>({
+		resolver: zodResolver(configSchema),
 		defaultValues: {
 			configfile: undefined,
 		},
 	});
 
-	// This function is called when the user submits the file
-	function onSubmit(values: z.infer<typeof formSchema>) {
+	function onSubmit(values: z.infer<typeof configSchema>) {
 		const file = values.configfile;
 
-		// Read the file content as text
 		const reader = new FileReader();
 		reader.onload = (e: ProgressEvent<FileReader>) => {
 			const xmlString = e.target?.result;
 			if (typeof xmlString !== "string") {
-				console.error("FileReader did not return a string result.");
 				form.setError("configfile", {
 					type: "manual",
 					message: "Could not read file content as text.",
@@ -222,7 +174,7 @@ export default function WelcomePage(): ReactElement {
 				return;
 			}
 
-			setOriginalXmlContent(xmlString); // Store original content for serialization
+			setOriginalXmlContent(xmlString);
 
 			const parser = new DOMParser();
 			const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -230,7 +182,6 @@ export default function WelcomePage(): ReactElement {
 			// Check for parsing errors
 			const errorNode = xmlDoc.querySelector("parsererror");
 			if (errorNode) {
-				console.error("Error parsing XML:", errorNode.textContent);
 				form.setError("configfile", {
 					type: "manual",
 					message: "Invalid XML file format.",
@@ -240,11 +191,9 @@ export default function WelcomePage(): ReactElement {
 			} else {
 				const parsedData = parseGtaConfigXml(xmlDoc);
 				setParsedConfig(parsedData);
-				console.log("Parsed GTA Config:", parsedData);
 			}
 		};
 		reader.onerror = () => {
-			console.error("Error reading file");
 			form.setError("configfile", {
 				type: "manual",
 				message: "Could not read file.",
@@ -255,20 +204,15 @@ export default function WelcomePage(): ReactElement {
 		reader.readAsText(file);
 	}
 
-	// This function is called by the GtaConfigEditor when the user wants to save
 	const handleSaveConfig = (updatedConfig: FlatConfig) => {
 		if (!originalXmlContent) {
-			console.error("Original XML content not available for serialization.");
 			return;
 		}
 		const newXmlString = serializeGtaConfigToXml(
 			updatedConfig,
 			originalXmlContent
 		);
-		console.log("Optimized XML:\n", newXmlString);
 
-		// Here, you could send the newXmlString to a server, or trigger a download
-		// For now, let's trigger a download directly.
 		const blob = new Blob([newXmlString], { type: "text/xml" });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
@@ -287,10 +231,8 @@ export default function WelcomePage(): ReactElement {
 			</div>
 
 			{parsedConfig ? (
-				// If config is parsed, show the editor
 				<GtaConfigEditor config={parsedConfig} onSave={handleSaveConfig} />
 			) : (
-				// Otherwise, show the file upload form
 				<div className="w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md mt-8">
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

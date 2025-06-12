@@ -21,26 +21,22 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 
-// Define the structure for a config item, used in the flattened state
 interface ConfigItem {
-	value: boolean | number | string; // More specific type for value
+	value: boolean | number | string;
 	type: "boolean" | "number" | "string" | "container";
 	readonly?: boolean;
 	originalValue?: boolean | number | string;
 }
 
-// Define the type for the entire flattened configuration object
 interface FlatConfig {
 	[key: string]: ConfigItem;
 }
 
-// Props for the GtaConfigEditor component
 interface GtaConfigEditorProps {
 	config: FlatConfig;
 	onSave: (updatedConfig: FlatConfig) => void;
 }
 
-// Helper to categorize settings for UI grouping
 const sectionMapping: { [key: string]: string } = {
 	graphics: "Graphics Settings",
 	system: "System Settings",
@@ -51,7 +47,6 @@ const sectionMapping: { [key: string]: string } = {
 	configSource: "General",
 };
 
-// Define specific props interfaces for each component type
 interface SliderProps {
 	min: number;
 	max: number;
@@ -78,7 +73,6 @@ interface TextProps {
 	readonly?: boolean;
 }
 
-// Union type for all possible props
 type SettingProps =
 	| SliderProps
 	| SelectProps
@@ -95,7 +89,6 @@ interface SettingDefinition {
 const settingDefinitions: {
 	[key: string]: SettingDefinition;
 } = {
-	// Graphics Settings (most are safe, add readonly for system-level ones)
 	"graphics.Tessellation": {
 		label: "Tessellation",
 		component: "select",
@@ -159,17 +152,17 @@ const settingDefinitions: {
 		label: "MSAA Fragments",
 		component: "input",
 		props: { type: "number", readonly: true },
-	}, // Marked readonly
+	},
 	"graphics.MSAAQuality": {
 		label: "MSAA Quality",
 		component: "input",
 		props: { type: "number", readonly: true },
-	}, // Marked readonly
+	},
 	"graphics.SamplingMode": {
 		label: "Sampling Mode",
 		component: "input",
 		props: { type: "number", readonly: true },
-	}, // Marked readonly
+	},
 	"graphics.TextureQuality": {
 		label: "Texture Quality",
 		component: "select",
@@ -224,22 +217,22 @@ const settingDefinitions: {
 		label: "Shadow Split Z Start",
 		component: "slider",
 		props: { min: -5, max: 5, step: 0.01, readonly: true },
-	}, // Marked readonly
+	},
 	"graphics.Shadow_SplitZEnd": {
 		label: "Shadow Split Z End",
 		component: "slider",
 		props: { min: -5, max: 5, step: 0.01, readonly: true },
-	}, // Marked readonly
+	},
 	"graphics.Shadow_aircraftExpWeight": {
 		label: "Aircraft Exp. Weight",
 		component: "slider",
 		props: { min: -5, max: 5, step: 0.01, readonly: true },
-	}, // Marked readonly
+	},
 	"graphics.Shadow_DisableScreenSizeCheck": {
 		label: "Disable Screen Size Check",
 		component: "switch",
 		props: { readonly: true },
-	}, // Marked readonly
+	},
 	"graphics.Reflection_MipBlur": {
 		label: "Reflection Mip Blur",
 		component: "switch",
@@ -255,7 +248,7 @@ const settingDefinitions: {
 		label: "DirectX Version",
 		component: "text",
 		props: { readonly: true },
-	}, // Changed to 'text' and explicitly readonly
+	},
 	"graphics.CityDensity": {
 		label: "City Density",
 		component: "slider",
@@ -265,12 +258,12 @@ const settingDefinitions: {
 		label: "Pedestrian Variety Multiplier",
 		component: "slider",
 		props: { min: -10, max: 10, step: 0.1 },
-	}, // Adjusted range for safety
+	},
 	"graphics.VehicleVarietyMultiplier": {
 		label: "Vehicle Variety Multiplier",
 		component: "slider",
 		props: { min: -10, max: 10, step: 0.1 },
-	}, // Adjusted range for safety
+	},
 	"graphics.PostFX": {
 		label: "Post FX",
 		component: "select",
@@ -292,7 +285,6 @@ const settingDefinitions: {
 		props: { min: 0, max: 1, step: 0.01 },
 	},
 
-	// System Settings (mostly read-only or advanced, make them all readonly text)
 	"system.numBytesPerReplayBlock": {
 		label: "Bytes Per Replay Block",
 		component: "text",
@@ -314,10 +306,8 @@ const settingDefinitions: {
 		props: { readonly: true },
 	},
 
-	// Audio Settings (safe)
 	"audio.Audio3d": { label: "3D Audio", component: "switch" },
 
-	// Video Settings (Screen resolution/refresh rate should be readonly)
 	"video.AdapterIndex": {
 		label: "Adapter Index",
 		component: "text",
@@ -384,7 +374,6 @@ const settingDefinitions: {
 		},
 	},
 
-	// General & Hardware Info (all readonly)
 	VideoCardDescription: {
 		label: "Video Card",
 		component: "text",
@@ -399,18 +388,17 @@ const settingDefinitions: {
 };
 
 const GtaConfigEditor: React.FC<GtaConfigEditorProps> = ({
+
+
 	config,
 	onSave,
 }) => {
-	// Internal state for the editable config, initialized from props
 	const [editedConfig, setEditedConfig] = useState<FlatConfig>(config);
 
-	// Update internal state if the 'config' prop changes (e.g., a new file is loaded)
 	useEffect(() => {
 		setEditedConfig(config);
 	}, [config]);
 
-	// Handler for updating a setting's value
 	const handleValueChange = useCallback(
 		(key: string, newValue: ConfigItem["value"]) => {
 			setEditedConfig((prevConfig) => ({
@@ -424,7 +412,6 @@ const GtaConfigEditor: React.FC<GtaConfigEditorProps> = ({
 		[]
 	);
 
-	// Group settings by their main section (e.g., 'graphics', 'system')
 	const groupedSettings = Object.keys(editedConfig).reduce(
 		(acc, key) => {
 			const rootSection = key.split(".")[0];
@@ -432,16 +419,12 @@ const GtaConfigEditor: React.FC<GtaConfigEditorProps> = ({
 			if (!acc[groupName]) {
 				acc[groupName] = [];
 			}
-			// Only add settings that have a specific definition or are explicitly handled as readonly text
 			const definition = settingDefinitions[key];
 			if (definition && editedConfig[key].type !== "container") {
-				// Only include if it's not a container type AND either it's editable
-				// or it's a text component (which is informational and always rendered).
 				if (!definition.props?.readonly || definition.component === "text") {
 					acc[groupName].push(key);
 				}
 			} else if (!definition && editedConfig[key].type !== "container") {
-				// Fallback for undefined settings, display as read-only text
 				acc[groupName].push(key);
 			}
 			return acc;
@@ -449,17 +432,14 @@ const GtaConfigEditor: React.FC<GtaConfigEditorProps> = ({
 		{} as { [group: string]: Array<string> }
 	);
 
-	// Render a single setting control based on its inferred type and definition
 	const renderSettingControl = (key: string, item: ConfigItem) => {
 		const definition = settingDefinitions[key];
-		// Determine if the control should be disabled based on the definition's readonly prop
 		const isDisabled: boolean =
 			(definition?.props &&
 				"readonly" in definition.props &&
 				definition.props.readonly) ||
 			false;
 
-		// If no specific definition, fall back to a generic read-only text display
 		if (!definition || (isDisabled && definition.component !== "text")) {
 			return (
 				<div
@@ -484,7 +464,6 @@ const GtaConfigEditor: React.FC<GtaConfigEditorProps> = ({
 			);
 		}
 
-		// Render control based on the defined component type
 		switch (definition.component) {
 			case "switch": {
 				const switchProps = definition.props as SwitchProps | undefined;
@@ -588,7 +567,6 @@ const GtaConfigEditor: React.FC<GtaConfigEditorProps> = ({
 				);
 			}
 			case "text": {
-				// For read-only text fields
 				const textProps = definition.props as TextProps | undefined;
 				return (
 					<div
@@ -606,7 +584,6 @@ const GtaConfigEditor: React.FC<GtaConfigEditorProps> = ({
 			}
 			case "input":
 			default: {
-				// Default to input for numbers/strings
 				const inputProps = definition.props as InputProps | undefined;
 				return (
 					<div
