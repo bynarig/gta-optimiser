@@ -115,7 +115,7 @@ export default function App(): ReactElement {
 							fontSize: `${currentLogoFontSize}px`,
 							paddingLeft: `${currentLogoPL}px`,
 						}}
-						className="font-bold text-primary-foreground"
+						className="font-bold text-foreground"
 					>
 						GTA Configs
 					</a>
